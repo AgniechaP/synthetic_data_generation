@@ -11,7 +11,7 @@ def get_contours(coco_annotations: dict, input_image_name: str, object_index: in
         coco_annotations: json file with coco annotations
         input_image_name: path to directory with set of images
         object_index: index of object to be cut from original photo
-    Returns: segmentation points
+    Returns: (segmentation points, number of object in the photo)
     """
     objects_on_image = []
     image_id = None
@@ -32,14 +32,13 @@ def get_contours(coco_annotations: dict, input_image_name: str, object_index: in
     if len(objects_on_image) == 0:
         print(f"No objects found on image {input_image_name}!")
         return None
-    else:
-        print(f"Number of objects found on image: {len(objects_on_image)}. Extracting object with index: {object_index}")
 
     segmentation = objects_on_image[object_index]
     segmentation = np.array(segmentation, np.int32)
     segmentation = segmentation.reshape((-1, 1, 2))
+    number_of_object_in_the_photo = len(objects_on_image)
 
-    return segmentation
+    return segmentation, number_of_object_in_the_photo
 
 
 def get_mask_from_contours(image: np.ndarray, contours):
