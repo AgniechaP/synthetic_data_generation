@@ -26,7 +26,6 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
     image_path = os.path.join(image_library_path, input_image_name)
     image = cv2.imread(image_path)
     annotations = json.load(open(coco_filepath))
-    rotate = False
     # Main loop
     while True:
         # Process mask
@@ -79,34 +78,38 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
             output = output_image_copy
 
             # Show result
-            resized_img_to_show = cv2.resize(output, (0, 0), fx=0.5, fy=0.5)
+            resized_img_to_show = cv2.resize(output, (1280, 720))
             cv2.imshow("Output image preview", resized_img_to_show)
 
-            # Save result
-            # print(f"Press e to save, q to quit.")
+            # Key control
             key = cv2.waitKey(0)
             if key == ord('w'):
+                # Move object up
                 y_position -= POSITION_INCREMENT_DECREMENT
             elif key == ord('s'):
+                # Move object down
                 y_position += POSITION_INCREMENT_DECREMENT
             elif key == ord('a'):
+                # Move object left
                 x_position -= POSITION_INCREMENT_DECREMENT
             elif key == ord('d'):
+                # Move object right
                 x_position += POSITION_INCREMENT_DECREMENT
             elif key == ord('z'):
+                # Change object
                 object_index += 1
                 if object_index > number_of_objects_in_the_photo-1:
                     object_index = 0
                 print(f"Number of object in the picture: {number_of_objects_in_the_photo}. "
                       f"Selected item index: {object_index}")
             elif key == ord('x'):
+                # Scale object up
                 if scale is None:
                     scale = 1.0
                 else:
-                    scale += 0.1
-            elif key == ord('r'):
-                rotate = True
+                    scale += SCALE_INCREMENT_DECREMENT
             elif key == ord('c'):
+                # Scale object down
                 if scale is None:
                     scale = 1.0  # Standard value
                 else:
@@ -115,9 +118,11 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
                     scale = SCALE_INCREMENT_DECREMENT
                     print(f"Minimum scale reached.")
             elif key == ord('e'):
+                # Save photo
                 cv2.imwrite(output_image_filepath, output)
                 print(f"Photo saved.")
             elif key == ord('q'):
+                # Quit
                 break
 
             # Element position protection
@@ -139,7 +144,7 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
                     scale -= 0.1
                     mask_scale_check = cv2.resize(mask_cropped, (0, 0), fx=scale, fy=scale)
                     h_check, w_check, _ = mask_scale_check.shape
-                print("Maximum scale reached.")
+                    print("Maximum scale reached.")
 
     print(f"--- -------------------- ---")
 
