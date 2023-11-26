@@ -8,7 +8,7 @@ import cv2
 from utilities.parsing_vaildator import file_path, dir_path
 from utilities.image_processing import get_contours, get_mask_from_contours
 from utilities.image_processing import process_blurred_mask, get_mask_contours
-from utilities.image_processing import alpha_blend
+from utilities.image_processing import alpha_blend, seamless_clone
 
 
 def main(coco_filepath: file_path, image_library_path: dir_path, input_image_name: str,
@@ -71,7 +71,7 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
 
             output_image_copy = output_image.copy()
 
-            output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = alpha_blend(
+            output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = seamless_clone(
                 output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w],
                 img_cropped, mask_cropped
             )

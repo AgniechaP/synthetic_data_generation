@@ -156,6 +156,27 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
 
     return out
 
+def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray):
+    """
+    Performs seamless cloning technique combining a foreground image with a background image based on a mask
+    Args:
+        background: background image
+        foreground: foreground image
+        mask: binary mask
+    Returns: output image
+    """
+
+    mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+
+    # Finding the center of the mask contour
+    center = cv2.boundingRect(mask_gray)[0] + cv2.boundingRect(mask_gray)[2] // 2, \
+             cv2.boundingRect(mask_gray)[1] + cv2.boundingRect(mask_gray)[3] // 2
+
+    # Performing seamless cloning
+    out = cv2.seamlessClone(foreground, background, mask_gray, center, cv2.NORMAL_CLONE)
+
+    return out
+
 
 def process_blurred_mask(mask: np.ndarray, dilation_length: int = 51, blur_length: int = 149):
     """
