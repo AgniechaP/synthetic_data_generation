@@ -16,6 +16,9 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
     # Constants
     POSITION_INCREMENT_DECREMENT = 10
     SCALE_INCREMENT_DECREMENT = 0.1
+    ALPHA_BLEND_OVERLAY = 'alpha_blend'
+    SEAMLESS_CLONE_OVERLAY = 'seamless_clone'
+
 
     # Print input data
     print(f"--- Synthetic data generator ---")
@@ -71,12 +74,12 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
 
             output_image_copy = output_image.copy()
 
-            if method == 'seamless_clone':
+            if method == SEAMLESS_CLONE_OVERLAY:
                 output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = seamless_clone(
                     output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w],
                     img_cropped, mask_cropped
                 )
-            elif method == 'alpha_blend':
+            elif method == ALPHA_BLEND_OVERLAY:
                 output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = alpha_blend(
                     output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w],
                     img_cropped, mask_cropped
