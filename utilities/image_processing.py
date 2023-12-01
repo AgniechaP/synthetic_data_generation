@@ -166,7 +166,12 @@ def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndar
     Returns: output image
     """
 
-    mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    # mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    if mask.shape[-1] == 3:
+        mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    else:
+        mask_gray = mask
+        
 
     # Finding the center of the mask contour
     center = cv2.boundingRect(mask_gray)[0] + cv2.boundingRect(mask_gray)[2] // 2, \
@@ -174,7 +179,6 @@ def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndar
 
     # Performing seamless cloning
     out = cv2.seamlessClone(foreground, background, mask_gray, center, cv2.NORMAL_CLONE)
-
     return out
 
 

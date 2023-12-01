@@ -12,7 +12,7 @@ from utilities.image_processing import alpha_blend, seamless_clone
 
 
 def main(coco_filepath: file_path, image_library_path: dir_path, input_image_name: str,
-         output_image_filepath: file_path, x_position: int, y_position: int, scale: float, object_index: int):
+         output_image_filepath: file_path, x_position: int, y_position: int, scale: float, object_index: int, method: str):
     # Constants
     POSITION_INCREMENT_DECREMENT = 10
     SCALE_INCREMENT_DECREMENT = 0.1
@@ -71,10 +71,19 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
 
             output_image_copy = output_image.copy()
 
-            output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = seamless_clone(
-                output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w],
-                img_cropped, mask_cropped
-            )
+            if method == 'seamless_clone':
+                output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = seamless_clone(
+                    output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w],
+                    img_cropped, mask_cropped
+                )
+            elif method == 'alpha_blend':
+                output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w] = alpha_blend(
+                    output_image_copy[y_offset:y_offset + h, x_offset:x_offset + w],
+                    img_cropped, mask_cropped
+                )
+            else:
+                print("Invalid method chosen. Please choose between 'seamless_clone' and 'alpha_blend'.")
+
             output = output_image_copy
 
             # Show result
@@ -163,8 +172,9 @@ if __name__ == "__main__":
     parser.add_argument('--position_y', type=int, help="Y position of paste.", default=None)
     parser.add_argument('--scale', type=float, help="Scale of paste.", default=None)
     parser.add_argument('--object', type=int, help="Object index on photo.", default=0)
+    parser.add_argument('--method', type=str, choices=['seamless_clone', 'alpha_blend'], help="Choose the method for blending seamless_clone/alpha_blend.", default='seamless_clone')
     args = parser.parse_args()
 
     main(coco_filepath=args.coco, image_library_path=args.library, input_image_name=args.input,
          output_image_filepath=args.output, x_position=args.position_x, y_position=args.position_y,
-         scale=args.scale, object_index=args.object)
+         scale=args.scale, object_index=args.object, method=args.method)
