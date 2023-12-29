@@ -3,7 +3,6 @@ import math
 import cv2
 import numpy as np
 
-
 def get_contours(coco_annotations: dict, input_image_name: str, object_index: int = 0):
     """
     Get segmentation points
@@ -86,7 +85,7 @@ def threshold(img: np.ndarray, thresh: float = 128, maxvalue: float = 255, dtype
     return threshed
 
 
-def smooth_mask(mask: np.ndarray, kernel_size: int = 11):
+def smooth_mask(mask: np.ndarray, kernel_size: int = 11, thresh: float = 128, maxvalue: float = 255):
     """
     Smooths input mask by performing a Gaussian blur and threshold.
     Args:
@@ -95,7 +94,7 @@ def smooth_mask(mask: np.ndarray, kernel_size: int = 11):
     Returns: blurred mask after GaussianBlur operation
     """
     blurred = cv2.GaussianBlur(mask, (kernel_size, kernel_size), 0)
-    threshed = threshold(blurred)
+    threshed = threshold(blurred, thresh, maxvalue)
 
     return threshed
 
@@ -122,7 +121,7 @@ def find_contours(blurred_mask: np.ndarray):
         blurred_mask: smoothed and blurred mask
     Returns: contours list
     """
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     morphed = cv2.morphologyEx(blurred_mask, cv2.MORPH_CLOSE, kernel)
     contours = cv2.findContours(morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -136,6 +135,8 @@ def get_max_contour(contours):
         contours: list of contours
     Returns: maximum contour
     """
+    if not contours:
+        return None
     return sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
 
@@ -165,8 +166,10 @@ def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndar
         mask: binary mask
     Returns: output image
     """
-
-    # mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    # Check if the mask is not None and not empty
+    if mask is None or mask.size == 0:
+        return background 
+    
     if mask.shape[-1] == 3:
         mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
     else:
@@ -191,7 +194,12 @@ def process_blurred_mask(mask: np.ndarray, dilation_length: int = 51, blur_lengt
         blur_length: blur parameter
     Returns: blurred mask
     """
+    # kernel = np.ones((5,5), np.uint8)
+    # mask_closed = cv2.erode(mask,kernel,iterations = 1)
+
     mask_dilated = get_dilated_mask(mask, dilation_length)
+
+
     mask_smooth = smooth_mask(mask_dilated, odd(dilation_length * 1.5))
     mask_blurred = cv2.GaussianBlur(mask_smooth, (blur_length, blur_length), 0)
     mask_blurred = cv2.cvtColor(mask_blurred, cv2.COLOR_GRAY2BGR)
@@ -206,6 +214,7 @@ def get_mask_contours(mask: np.ndarray):
         mask: mask of the object in image
     Returns: maks contour
     """
+    
     mask_threshed = threshold(mask, 1)
     mask_contours = find_contours(mask_threshed)
     mask_contour = get_max_contour(mask_contours)
