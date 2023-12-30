@@ -53,7 +53,7 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
     # Get data
     image_path = os.path.join(image_library_path, input_image_name)
     image = cv2.imread(image_path)
-    cv2.namedWindow("Output image preview") 
+    cv2.namedWindow("Output image preview")
     # Create trackbars to set parameters
     # Get dilated mask function trackbar
     cv2.createTrackbar("Dilation length","Output image preview", 51, 255, odd_dilation_callback)
@@ -62,7 +62,7 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
     cv2.createTrackbar("Threshold value","Output image preview", 128, 255, empty_callback)
     cv2.createTrackbar("Max value with thresh binary","Output image preview", 255, 255, empty_callback)
     # Blurred mask
-    cv2.createTrackbar("Blur length","Output image preview", 149, 555, odd_blurred_mask_callback)
+    cv2.createTrackbar("Blur length","Output image preview", 149, 255, odd_blurred_mask_callback)
     annotations = json.load(open(coco_filepath))
     
     # Main loop
@@ -72,16 +72,17 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
         mask = get_mask_from_contours(image, contours)
 
         if mask is not None:
-            # Get dilated mask
+            # Get dilated mask. Bigger dilation_length - more expanded boundaries around litter image
             dilation_length = cv2.getTrackbarPos("Dilation length","Output image preview")
             dilated = get_dilated_mask(mask, dilation_length)
-            # Get smoothed mask - it is recommended to set kernel as 1.5 * dilation_length
+            # Get smoothed mask. Smaller values of gauusian_blur_kernel will preserve more details, while larger values will result in more smoothing
             gauusian_blur_kernel = cv2.getTrackbarPos("Gaussian blur kernel(smmoth mask)","Output image preview")
+            # Pixels with intensity values below threshold_value will be set to 0
             threshold_value = cv2.getTrackbarPos("Threshold value","Output image preview")
+            # For binary thresholding, pixels above the threshold get set to maxvalue
             maxvalue = cv2.getTrackbarPos("Max value with thresh binary","Output image preview")
             mask_smooth = smooth_mask(dilated, gauusian_blur_kernel, threshold_value, maxvalue)
-
-            # When (11,11) it is more clearer but when 149 is more blended and bigger
+            # The size of the kernel for the Gaussian blur applied to smoothed mask
             blur_length = cv2.getTrackbarPos("Blur length","Output image preview")
             mask_blurred = cv2.GaussianBlur(mask_smooth, (blur_length, blur_length), 0)
             mask_blurred = cv2.cvtColor(mask_blurred, cv2.COLOR_GRAY2BGR)

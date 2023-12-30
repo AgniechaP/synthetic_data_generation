@@ -149,10 +149,18 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
         mask: binary mask
     Returns: output image
     """
-    mask = mask.astype("float") / 255.
+    # Ensure that background and foreground have the same shape
+    if background.shape != foreground.shape:
+        foreground = cv2.resize(foreground, (background.shape[1], background.shape[0]))
+
+    # Resize mask to match the shape of the background
+    mask_resized = cv2.resize(mask, (background.shape[1], background.shape[0]))
+
+    mask_resized = mask_resized.astype("float") / 255.
     foreground = foreground.astype("float") / 255.
     background = background.astype("float") / 255.
-    out = background * (1 - mask) + foreground * mask
+
+    out = background * (1 - mask_resized) + foreground * mask_resized
     out = (out * 255).astype("uint8")
 
     return out
@@ -194,12 +202,7 @@ def process_blurred_mask(mask: np.ndarray, dilation_length: int = 51, blur_lengt
         blur_length: blur parameter
     Returns: blurred mask
     """
-    # kernel = np.ones((5,5), np.uint8)
-    # mask_closed = cv2.erode(mask,kernel,iterations = 1)
-
     mask_dilated = get_dilated_mask(mask, dilation_length)
-
-
     mask_smooth = smooth_mask(mask_dilated, odd(dilation_length * 1.5))
     mask_blurred = cv2.GaussianBlur(mask_smooth, (blur_length, blur_length), 0)
     mask_blurred = cv2.cvtColor(mask_blurred, cv2.COLOR_GRAY2BGR)
@@ -214,7 +217,6 @@ def get_mask_contours(mask: np.ndarray):
         mask: mask of the object in image
     Returns: maks contour
     """
-    
     mask_threshed = threshold(mask, 1)
     mask_contours = find_contours(mask_threshed)
     mask_contour = get_max_contour(mask_contours)
