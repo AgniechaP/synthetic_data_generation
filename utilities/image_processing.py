@@ -153,6 +153,16 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
     if background.shape != foreground.shape:
         foreground = cv2.resize(foreground, (background.shape[1], background.shape[0]))
 
+    # Check if the mask is not None and not empty
+    if (mask is None) or (mask.size == 0):
+        print("Warning: Empty mask. Unable to perform alpha blending. Changing parameters recommended.")
+        return background  # Return the original background if the mask is empty
+
+    # Check if the mask has a valid size
+    if (mask.shape[0] <= 0) or (mask.shape[1] <= 0):
+        print("Warning: Invalid mask size. Unable to perform alpha blending.")
+        return background
+
     # Resize mask to match the shape of the background
     mask_resized = cv2.resize(mask, (background.shape[1], background.shape[0]))
 
@@ -165,6 +175,7 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
 
     return out
 
+
 def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray):
     """
     Performs seamless cloning technique combining a foreground image with a background image based on a mask
@@ -175,7 +186,7 @@ def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndar
     Returns: output image
     """
     # Check if the mask is not None and not empty
-    if mask is None or mask.size == 0:
+    if (mask is None) or (mask.size == 0):
         return background 
     
     if mask.shape[-1] == 3:
