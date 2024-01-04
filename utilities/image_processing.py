@@ -3,7 +3,6 @@ import math
 import cv2
 import numpy as np
 
-
 def get_contours(coco_annotations: dict, input_image_name: str, object_index: int = 0):
     """
     Get segmentation points
@@ -86,7 +85,7 @@ def threshold(img: np.ndarray, thresh: float = 128, maxvalue: float = 255, dtype
     return threshed
 
 
-def smooth_mask(mask: np.ndarray, kernel_size: int = 11):
+def smooth_mask(mask: np.ndarray, kernel_size: int = 11, thresh: float = 128, maxvalue: float = 255):
     """
     Smooths input mask by performing a Gaussian blur and threshold.
     Args:
@@ -95,7 +94,7 @@ def smooth_mask(mask: np.ndarray, kernel_size: int = 11):
     Returns: blurred mask after GaussianBlur operation
     """
     blurred = cv2.GaussianBlur(mask, (kernel_size, kernel_size), 0)
-    threshed = threshold(blurred)
+    threshed = threshold(blurred, thresh, maxvalue)
 
     return threshed
 
@@ -122,7 +121,7 @@ def find_contours(blurred_mask: np.ndarray):
         blurred_mask: smoothed and blurred mask
     Returns: contours list
     """
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     morphed = cv2.morphologyEx(blurred_mask, cv2.MORPH_CLOSE, kernel)
     contours = cv2.findContours(morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -136,6 +135,8 @@ def get_max_contour(contours):
         contours: list of contours
     Returns: maximum contour
     """
+    if not contours:
+        return None
     return sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
 
@@ -148,13 +149,32 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
         mask: binary mask
     Returns: output image
     """
-    mask = mask.astype("float") / 255.
+    # Ensure that background and foreground have the same shape
+    if background.shape != foreground.shape:
+        foreground = cv2.resize(foreground, (background.shape[1], background.shape[0]))
+
+    # Check if the mask is not None and not empty
+    if (mask is None) or (mask.size == 0):
+        print("Warning: Empty mask. Unable to perform alpha blending. Changing parameters recommended.")
+        return background  # Return the original background if the mask is empty
+
+    # Check if the mask has a valid size
+    if (mask.shape[0] <= 0) or (mask.shape[1] <= 0):
+        print("Warning: Invalid mask size. Unable to perform alpha blending.")
+        return background
+
+    # Resize mask to match the shape of the background
+    mask_resized = cv2.resize(mask, (background.shape[1], background.shape[0]))
+
+    mask_resized = mask_resized.astype("float") / 255.
     foreground = foreground.astype("float") / 255.
     background = background.astype("float") / 255.
-    out = background * (1 - mask) + foreground * mask
+
+    out = background * (1 - mask_resized) + foreground * mask_resized
     out = (out * 255).astype("uint8")
 
     return out
+
 
 def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray):
     """
@@ -165,8 +185,10 @@ def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndar
         mask: binary mask
     Returns: output image
     """
-
-    # mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    # Check if the mask is not None and not empty
+    if (mask is None) or (mask.size == 0):
+        return background 
+    
     if mask.shape[-1] == 3:
         mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
     else:

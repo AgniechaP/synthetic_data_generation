@@ -7,8 +7,33 @@ import cv2
 
 from utilities.parsing_vaildator import file_path, dir_path
 from utilities.image_processing import get_contours, get_mask_from_contours
-from utilities.image_processing import process_blurred_mask, get_mask_contours
+from utilities.image_processing import get_mask_contours, get_dilated_mask, odd, smooth_mask
 from utilities.image_processing import alpha_blend, seamless_clone
+
+
+def empty_callback(value):
+    pass
+
+
+# Ensure and set kernel trackbars values to be odd values
+def odd_dilation_callback(value):
+    value = odd(value)
+    cv2.setTrackbarPos("Dilation length", "Output image preview", value)
+
+
+def odd_gaussian_blur_callback(value):
+    # Ensure the minimum value is 1
+    if value < 1:
+        value = 1
+    value = odd(value)
+    cv2.setTrackbarPos("Gaussian blur kernel (smooth mask)", "Output image preview", value)
+
+
+def odd_blurred_mask_callback(value):
+    if value < 1:
+        value = 1
+    value = odd(value)
+    cv2.setTrackbarPos("Blur length", "Output image preview", value)
 
 
 def main(coco_filepath: file_path, image_library_path: dir_path, input_image_name: str,
@@ -16,9 +41,8 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
     # Constants
     POSITION_INCREMENT_DECREMENT = 10
     SCALE_INCREMENT_DECREMENT = 0.1
-    ALPHA_BLEND_OVERLAY = 'alpha_blend'
-    SEAMLESS_CLONE_OVERLAY = 'seamless_clone'
-
+    ALPHA_BLEND_OVERLAY = "alpha_blend"
+    SEAMLESS_CLONE_OVERLAY = "seamless_clone"
 
     # Print input data
     print(f"--- Synthetic data generator ---")
@@ -28,7 +52,18 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
     # Get data
     image_path = os.path.join(image_library_path, input_image_name)
     image = cv2.imread(image_path)
+    cv2.namedWindow("Output image preview")
+    # Create trackbars to set parameters
+    # Get dilated mask function trackbar
+    cv2.createTrackbar("Dilation length","Output image preview", 51, 255, odd_dilation_callback)
+    # Smooth mask function trackbars
+    cv2.createTrackbar("Gaussian blur kernel (smooth mask)","Output image preview", 75, 555, odd_gaussian_blur_callback)
+    cv2.createTrackbar("Threshold value","Output image preview", 128, 255, empty_callback)
+    cv2.createTrackbar("Max value with thresh binary","Output image preview", 255, 255, empty_callback)
+    # Blurred mask
+    cv2.createTrackbar("Blur length","Output image preview", 149, 255, odd_blurred_mask_callback)
     annotations = json.load(open(coco_filepath))
+    
     # Main loop
     while True:
         # Process mask
@@ -36,7 +71,21 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
         mask = get_mask_from_contours(image, contours)
 
         if mask is not None:
-            mask_blurred = process_blurred_mask(mask)
+            # Get dilated mask. Bigger dilation_length - more expanded boundaries around litter image
+            dilation_length = cv2.getTrackbarPos("Dilation length","Output image preview")
+            dilated = get_dilated_mask(mask, dilation_length)
+            # Get smoothed mask. Smaller values of gaussian_blur_kernel will preserve more details, while larger values will result in more smoothing
+            gaussian_blur_kernel = cv2.getTrackbarPos("Gaussian blur kernel (smooth mask)","Output image preview")
+            # Pixels with intensity values below threshold_value will be set to 0
+            threshold_value = cv2.getTrackbarPos("Threshold value","Output image preview")
+            # For binary thresholding, pixels above the threshold get set to maxvalue
+            maxvalue = cv2.getTrackbarPos("Max value with thresh binary","Output image preview")
+            mask_smooth = smooth_mask(dilated, gaussian_blur_kernel, threshold_value, maxvalue)
+            # The size of the kernel for the Gaussian blur applied to smoothed mask
+            blur_length = cv2.getTrackbarPos("Blur length","Output image preview")
+            mask_blurred = cv2.GaussianBlur(mask_smooth, (blur_length, blur_length), 0)
+            mask_blurred = cv2.cvtColor(mask_blurred, cv2.COLOR_GRAY2BGR)
+
             mask_contour = get_mask_contours(mask_blurred)
             x, y, w, h = cv2.boundingRect(mask_contour)
 
@@ -44,9 +93,10 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
             mask_cropped = mask_blurred[y:y + h, x:x + w]
 
             if scale is not None:
-                img_cropped = cv2.resize(img_cropped, (0, 0), fx=scale, fy=scale)
-                mask_cropped = cv2.resize(mask_cropped, (0, 0), fx=scale, fy=scale)
-                h, w, _ = img_cropped.shape
+                if not img_cropped.size == 0:
+                    img_cropped = cv2.resize(img_cropped, (0, 0), fx=scale, fy=scale)
+                    mask_cropped = cv2.resize(mask_cropped, (0, 0), fx=scale, fy=scale)
+                    h, w, _ = img_cropped.shape
 
             # Process output image
             output_image = cv2.imread(output_image_filepath)
@@ -91,10 +141,11 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
 
             # Show result
             resized_img_to_show = cv2.resize(output, (1280, 720))
+            # resized_img_to_show = cv2.resize(mask_cropped, (1280, 720))
             cv2.imshow("Output image preview", resized_img_to_show)
 
             # Key control
-            key = cv2.waitKey(0)
+            key = cv2.waitKey(1) & 0xFF
             if key == ord('w'):
                 # Move object up
                 y_position -= POSITION_INCREMENT_DECREMENT
@@ -150,13 +201,14 @@ def main(coco_filepath: file_path, image_library_path: dir_path, input_image_nam
 
             # Element scale size protection
             if scale is not None:
-                mask_scale_check = cv2.resize(mask_cropped, (0, 0), fx=scale, fy=scale)
-                h_check, w_check, _ = mask_scale_check.shape
-                while (h_check > bg_h) or (w_check > bg_w):
-                    scale -= 0.1
+                if not img_cropped.size == 0:
                     mask_scale_check = cv2.resize(mask_cropped, (0, 0), fx=scale, fy=scale)
                     h_check, w_check, _ = mask_scale_check.shape
-                    print("Maximum scale reached.")
+                    while (h_check > bg_h) or (w_check > bg_w):
+                        scale -= 0.1
+                        mask_scale_check = cv2.resize(mask_cropped, (0, 0), fx=scale, fy=scale)
+                        h_check, w_check, _ = mask_scale_check.shape
+                        print("Maximum scale reached.")
 
     print(f"--- -------------------- ---")
 
