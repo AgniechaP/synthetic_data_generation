@@ -11,7 +11,7 @@ def get_contours(coco_annotations: dict, input_image_name: str, object_index: in
         coco_annotations: json file with coco annotations
         input_image_name: path to directory with set of images
         object_index: index of object to be cut from original photo
-    Returns: segmentation points
+    Returns: (segmentation points, number of object in the photo)
     """
     objects_on_image = []
     image_id = None
@@ -32,14 +32,13 @@ def get_contours(coco_annotations: dict, input_image_name: str, object_index: in
     if len(objects_on_image) == 0:
         print(f"No objects found on image {input_image_name}!")
         return None
-    else:
-        print(f"Number of objects found on image: {len(objects_on_image)}. Extracting object with index: {object_index}")
 
     segmentation = objects_on_image[object_index]
     segmentation = np.array(segmentation, np.int32)
     segmentation = segmentation.reshape((-1, 1, 2))
+    number_of_object_in_the_photo = len(objects_on_image)
 
-    return segmentation
+    return segmentation, number_of_object_in_the_photo
 
 
 def get_mask_from_contours(image: np.ndarray, contours):
@@ -87,7 +86,7 @@ def threshold(img: np.ndarray, thresh: float = 128, maxvalue: float = 255, dtype
     return threshed
 
 
-def smooth_mask(mask: np.ndarray, kernel_size: int = 11):
+def smooth_mask(mask: np.ndarray, kernel_size: int = 11, thresh: float = 128, maxvalue: float = 255):
     """
     Smooths input mask by performing a Gaussian blur and threshold.
     Args:
@@ -96,7 +95,7 @@ def smooth_mask(mask: np.ndarray, kernel_size: int = 11):
     Returns: blurred mask after GaussianBlur operation
     """
     blurred = cv2.GaussianBlur(mask, (kernel_size, kernel_size), 0)
-    threshed = threshold(blurred)
+    threshed = threshold(blurred, thresh, maxvalue)
 
     return threshed
 
@@ -123,7 +122,7 @@ def find_contours(blurred_mask: np.ndarray):
         blurred_mask: smoothed and blurred mask
     Returns: contours list
     """
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     morphed = cv2.morphologyEx(blurred_mask, cv2.MORPH_CLOSE, kernel)
     contours = cv2.findContours(morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -137,6 +136,8 @@ def get_max_contour(contours):
         contours: list of contours
     Returns: maximum contour
     """
+    if not contours:
+        return None
     return sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
 
@@ -149,12 +150,59 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
         mask: binary mask
     Returns: output image
     """
-    mask = mask.astype("float") / 255.
-    foreground = foreground.astype("float") / 255.
-    background = background.astype("float") / 255.
-    out = background * (1 - mask) + foreground * mask
+    # Ensure that background and foreground have the same shape
+    if background.shape != foreground.shape:
+        foreground = cv2.resize(foreground, (background.shape[1], background.shape[0]))
+
+    # Check if the mask is not None and not empty
+    if (mask is None) or (mask.size == 0):
+        print("Warning: Empty mask. Unable to perform alpha blending. Changing parameters recommended.")
+        return background  # Return the original background if the mask is empty
+
+    # Check if the mask has a valid size
+    if (mask.shape[0] <= 0) or (mask.shape[1] <= 0):
+        print("Warning: Invalid mask size. Unable to perform alpha blending.")
+        return background
+
+    # Resize mask to match the shape of the background
+    mask_resized = cv2.resize(mask, (background.shape[1], background.shape[0]))
+
+    mask_resized = mask_resized.astype("float") / 255.0
+    foreground = foreground.astype("float") / 255.0
+    background = background.astype("float") / 255.0
+
+    out = background * (1 - mask_resized) + foreground * mask_resized
     out = (out * 255).astype("uint8")
 
+    return out
+
+
+def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray):
+    """
+    Performs seamless cloning technique combining a foreground image with a background image based on a mask
+    Args:
+        background: background image
+        foreground: foreground image
+        mask: binary mask
+    Returns: output image
+    """
+    # Check if the mask is not None and not empty
+    if (mask is None) or (mask.size == 0):
+        return background
+
+    if mask.shape[-1] == 3:
+        mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    else:
+        mask_gray = mask
+
+    # Finding the center of the mask contour
+    center = (
+        cv2.boundingRect(mask_gray)[0] + cv2.boundingRect(mask_gray)[2] // 2,
+        cv2.boundingRect(mask_gray)[1] + cv2.boundingRect(mask_gray)[3] // 2,
+    )
+
+    # Performing seamless cloning
+    out = cv2.seamlessClone(foreground, background, mask_gray, center, cv2.NORMAL_CLONE)
     return out
 
 

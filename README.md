@@ -16,7 +16,19 @@ python3 main.py --coco /path/to/coco/file/annotations.json \
 --position_y 20 \
 --scale 0.5 \
 --object 1
+--method seamless_clone
 ```
+## Program control
+**Keyboar control:**
+* q - quit,
+* e - save photo,
+* w - move object up,
+* a - move object left,
+* s - move object down,
+* d - move object right,
+* z - change object,
+* x - scale up object,
+* c - scale down object.
 ## Example output
 **Used input:**
 ```bash
