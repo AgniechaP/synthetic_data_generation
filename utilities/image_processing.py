@@ -3,6 +3,7 @@ import math
 import cv2
 import numpy as np
 
+
 def get_contours(coco_annotations: dict, input_image_name: str, object_index: int = 0):
     """
     Get segmentation points
@@ -166,9 +167,9 @@ def alpha_blend(background: np.ndarray, foreground: np.ndarray, mask: np.ndarray
     # Resize mask to match the shape of the background
     mask_resized = cv2.resize(mask, (background.shape[1], background.shape[0]))
 
-    mask_resized = mask_resized.astype("float") / 255.
-    foreground = foreground.astype("float") / 255.
-    background = background.astype("float") / 255.
+    mask_resized = mask_resized.astype("float") / 255.0
+    foreground = foreground.astype("float") / 255.0
+    background = background.astype("float") / 255.0
 
     out = background * (1 - mask_resized) + foreground * mask_resized
     out = (out * 255).astype("uint8")
@@ -187,17 +188,18 @@ def seamless_clone(background: np.ndarray, foreground: np.ndarray, mask: np.ndar
     """
     # Check if the mask is not None and not empty
     if (mask is None) or (mask.size == 0):
-        return background 
-    
+        return background
+
     if mask.shape[-1] == 3:
         mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
     else:
         mask_gray = mask
-        
 
     # Finding the center of the mask contour
-    center = cv2.boundingRect(mask_gray)[0] + cv2.boundingRect(mask_gray)[2] // 2, \
-             cv2.boundingRect(mask_gray)[1] + cv2.boundingRect(mask_gray)[3] // 2
+    center = (
+        cv2.boundingRect(mask_gray)[0] + cv2.boundingRect(mask_gray)[2] // 2,
+        cv2.boundingRect(mask_gray)[1] + cv2.boundingRect(mask_gray)[3] // 2,
+    )
 
     # Performing seamless cloning
     out = cv2.seamlessClone(foreground, background, mask_gray, center, cv2.NORMAL_CLONE)
