@@ -73,8 +73,9 @@ def main(
             # 2. Weź obiekty ze zdjęcia,
             # 3. Losuj obiekt ze zdjęcia,
             # 4. Zapisz dane o obiekcie ze starego zdjęcia - stosunek wysokości i szerokości obiektu do wysokości i szerokości zdjęcia
-            # 5. Opcja: Processing obiektu,
-            # 6. Wklej obiekt na tło,
+            # 5. Opcja: Processing obiektu, w - w_z
+            #                               x - w_b     x = w_b*w/w_z
+            # 6. Wklej obiekt na tło i zapisz jego pozycje,
             # 7. Przygotuj dane do pliku COCO,
             # 8. Zapisz annotation do pliku COCO,
 
@@ -82,7 +83,6 @@ def main(
         output_photo_path = os.path.join(output_direcotry_path, output_photo_name)
         # cv2.imwrite(output_photo_path, img)  # TODO: replace img with proper image name
 
-    print(output_coco_file)
     # Save output COCO file
     save_output_coco_to_file(output_direcotry_path, OUTPUT_COCO_FILE_NAME, output_coco_file)
 
