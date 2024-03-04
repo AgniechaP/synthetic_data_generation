@@ -175,10 +175,33 @@ def process_background_image(background: numpy.ndarray):
 
 
 def get_random_image_name_for_object_extraction(coco_dict: dict) -> dict:
+    """
+
+    Args:
+        coco_dict:
+    Returns:
+
+    """
     number_of_available_images = len(coco_dict["images"])
     image_index = random.randint(0, number_of_available_images-1)
     return coco_dict["images"][image_index]
 
+
+def get_objects_from_image(coco_dict: dict, image_id: int) -> list:
+    """
+
+    Args:
+        coco_dict:
+        image_id:
+
+    Returns:
+
+    """
+    segmented_objects = []
+    for annotation in coco_dict["annotations"]:
+        if annotation["image_id"] == image_id:
+            segmented_objects.append(annotation)
+    return segmented_objects
 
 def save_output_coco_to_file(output_directory: dir_path, file_name: str, coco_dictionary: dict):
     """

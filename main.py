@@ -16,7 +16,10 @@ from utilities.pipeline_steps import (
     get_random_image_name_for_object_extraction,
     process_background_image,
     save_output_coco_to_file,
+    get_objects_from_image
 )
+
+from utilities.image_processing import get_contours
 
 
 def main(
@@ -70,13 +73,22 @@ def main(
             object_img_path = os.path.join(image_library_path, object_img_detail["file_name"])
             object_img_id = object_img_detail["id"]
 
-            # 2. Weź obiekty ze zdjęcia,
-            # 3. Losuj obiekt ze zdjęcia,
-            # 4. Zapisz dane o obiekcie ze starego zdjęcia - stosunek wysokości i szerokości obiektu do wysokości i szerokości zdjęcia
-            # 5. Opcja: Processing obiektu, w - w_z
-            #                               x - w_b     x = w_b*w/w_z
-            # 6. Wklej obiekt na tło i zapisz jego pozycje,
-            # 7. Przygotuj dane do pliku COCO,
+            # Get segmented objects on image
+            segmented_objects_on_image = get_objects_from_image(input_coco_file, object_img_id)
+
+            # Get random object from segmented list
+            random_object_index = random.randint(0, len(segmented_objects_on_image)-1)
+            random_object = segmented_objects_on_image[random_object_index]
+
+            # Calculate width and height ratio
+            x_w = width * random_object["bbox"][2] / object_img_detail["width"]
+            x_h = height * random_object["bbox"][3] / object_img_detail["height"]
+
+            # Get contours and mask of object
+
+
+            # 6. Wklej obiekt na tło - maska,
+            # 7. Przygotuj dane do pliku COCO na podstawie maski,
             # 8. Zapisz annotation do pliku COCO,
 
         # Save output photo
