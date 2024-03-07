@@ -30,13 +30,13 @@ def main(
         image_library_path: dir_path,
         backgrounds_directory_path: dir_path,
         output_direcotry_path: dir_path,
+        photo_prefix: str,
         output_photo_number: int,
 ):
     # Constants
     MIN_NUMBER_OF_OBJECTS_ON_OUTPUT_BACKGROUND = 1
     MAX_NUMBER_OF_OBJECTS_ON_OUTPUT_BACKGROUND = 15
     OUTPUT_COCO_FILE_NAME = "annotations_auto_pipeline.json"
-    GENERATED_PHOTO_NAME_PREFIX = "agp_photo_"
     GENERATED_PHOTO_NAME_SUFFIX = ".jpg"
 
     print("--- Auto pipeline synthetic data generator ---")
@@ -63,7 +63,7 @@ def main(
         height, width, _ = background.shape
 
         # Add image record to COCO file
-        output_photo_name = GENERATED_PHOTO_NAME_PREFIX + str(photo_num) + GENERATED_PHOTO_NAME_SUFFIX
+        output_photo_name = photo_prefix + str(photo_num) + GENERATED_PHOTO_NAME_SUFFIX
         coco_photo_id = add_image_to_coco(output_coco_file, width, height, output_photo_name)
 
         # Initialize the output image with the background and black background as a base for mask
@@ -133,7 +133,6 @@ def main(
             )
 
             # Generate mask for each pasted rubbish onto new background
-            # mask_output_path = os.path.join(output_direcotry_path, output_photo_name[:-4] + f"_mask_{photo_num}_{_}.jpg")
             mask_for_rubbish = np.zeros_like(background, dtype=np.uint8)
             mask_for_rubbish[
                 paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width
@@ -148,8 +147,6 @@ def main(
                 mask_for_rubbish = cv2.cvtColor(mask_for_rubbish, cv2.COLOR_BGR2GRAY)
             else:
                 pass
-            # Save each mask
-            # cv2.imwrite(mask_output_path, mask_for_rubbish)
 
             # Generating mask from new image - all rubbish on new background mask
             mask_from_generated_photo[
@@ -220,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument("--library", type=dir_path, help="Photo library connected to the COCO file.", required=True)
     parser.add_argument("--input", type=dir_path, help="Backgrounds directory for output photos.", required=True)
     parser.add_argument("--output", type=dir_path, help="Output directory to store created files.", required=True)
+    parser.add_argument("--prefix", type=str, help="Prefix for generated photos.", required=False, default="agp_photo_")
     parser.add_argument(
         "--number", type=int, help="Number of output files.", required=False, default=DEFAULT_OUTPUT_PHOTO_NUMBER
     )
@@ -230,5 +228,6 @@ if __name__ == "__main__":
         image_library_path=args.library,
         backgrounds_directory_path=args.input,
         output_direcotry_path=args.output,
+        photo_prefix=args.prefix,
         output_photo_number=args.number,
     )

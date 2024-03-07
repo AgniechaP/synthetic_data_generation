@@ -12,6 +12,7 @@ python3 main.py --coco /path/to/coco/file/annotations.json \
 --library /path/to/library/images \
 --input /path/to/backgrounds/directory \
 --output /path/to/output/directory \
+--prefix prefix_for_generated_photos_ \
 --number 5
 ```
 ## Pipeline diagram

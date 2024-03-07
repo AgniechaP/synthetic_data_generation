@@ -176,11 +176,11 @@ def process_background_image(background: numpy.ndarray):
 
 def get_random_image_name_for_object_extraction(coco_dict: dict) -> dict:
     """
-
+    Get random image name from COCO file.
     Args:
-        coco_dict:
+        coco_dict: COCO file.
     Returns:
-
+    Image info from COCO file.
     """
     number_of_available_images = len(coco_dict["images"])
     image_index = random.randint(0, number_of_available_images - 1)
@@ -189,13 +189,12 @@ def get_random_image_name_for_object_extraction(coco_dict: dict) -> dict:
 
 def get_objects_from_image(coco_dict: dict, image_id: int) -> list:
     """
-
+    Get all annotated objects from given image id.
     Args:
-        coco_dict:
-        image_id:
-
+        coco_dict: COCO file.
+        image_id: Image id for search.
     Returns:
-
+    List of all objects on image form COCO file.
     """
     segmented_objects = []
     for annotation in coco_dict["annotations"]:
