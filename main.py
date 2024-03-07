@@ -139,11 +139,26 @@ def main(
                 rubbish_mask_resized,
             )
 
-            # Generating mask from new image
-            mask_from_generated_photo[
-                paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width
-            ] = copy_paste_without_blend(
-                mask_from_generated_photo[paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width],
+            # Generate mask for each pasted rubbish onto new background
+            mask_output_path = os.path.join(output_direcotry_path, output_photo_name[:-4] + f"_mask_{photo_num}_{_}.jpg")
+            mask_for_rubbish = np.zeros_like(background, dtype=np.uint8)
+            mask_for_rubbish[paste_y:paste_y + scaled_height, paste_x:paste_x + scaled_width] = copy_paste_without_blend(
+                mask_for_rubbish[paste_y:paste_y + scaled_height, paste_x:paste_x + scaled_width],
+                np.ones_like(rubbish_object_resized) * 255,  # White mask for pasted rubbish
+                rubbish_mask_resized
+            )
+
+            # Change number of channels to 1 
+            if mask_for_rubbish.shape[2] != 1:
+                mask_for_rubbish = cv2.cvtColor(mask_for_rubbish, cv2.COLOR_BGR2GRAY)
+            else:
+                pass
+            # Save each mask
+            cv2.imwrite(mask_output_path, mask_for_rubbish)
+
+            # Generating mask from new image - all rubbish on new background mask
+            mask_from_generated_photo[paste_y:paste_y+scaled_height, paste_x:paste_x+scaled_width] = copy_paste_without_blend(
+                mask_from_generated_photo[paste_y:paste_y+scaled_height, paste_x:paste_x+scaled_width],
                 rubbish_object_resized,
                 rubbish_mask_resized,
             )
@@ -152,18 +167,17 @@ def main(
             mask_from_generated_photo[mask_from_generated_photo != 0] = 255
 
             # Update the occupied mask with the new object's region
+
             occupied_mask[paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width] = 1
 
             # Create COCO annotation
-            poly_annotation = annotation_poly_based_on_mask(cv2.cvtColor(mask_from_generated_photo, cv2.COLOR_BGR2GRAY)) #TODO:
+            poly_annotation = annotation_poly_based_on_mask(mask_for_rubbish)
             if poly_annotation is not None:
                 coco_segmentation = poly_annotation[0]
                 coco_area = poly_annotation[1]
                 coco_iscrowd = 0
             else:
-                rle_annotation = annotation_rle_based_on_mask(
-                    cv2.cvtColor(mask_from_generated_photo, cv2.COLOR_BGR2GRAY) #TODO:
-                )
+                rle_annotation = annotation_rle_based_on_mask(mask_for_rubbish)
                 coco_segmentation = rle_annotation[0]
                 coco_area = rle_annotation[1]
                 coco_iscrowd = 1
@@ -181,12 +195,18 @@ def main(
                 coco_iscrowd,
             )
 
+
         # Save output photo
         output_photo_path = os.path.join(output_direcotry_path, output_photo_name)
         cv2.imwrite(output_photo_path, output_image)
 
-        # Save the mask
+        # Save the mask with all rubish pasted onto new background
         output_mask_path = os.path.join(output_direcotry_path, output_photo_name[:-4] + "_mask.jpg")
+        # Change number of channels to 1 
+        if mask_from_generated_photo.shape[2] != 1:
+            mask_from_generated_photo = cv2.cvtColor(mask_from_generated_photo, cv2.COLOR_BGR2GRAY)
+        else:
+            pass
         cv2.imwrite(output_mask_path, mask_from_generated_photo)
 
     # Save output COCO file
