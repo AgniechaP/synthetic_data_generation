@@ -1,9 +1,11 @@
+import datetime
 import json
 import os
-import cv2
 import random
-import datetime
+
+import cv2
 import numpy
+import numpy as np
 
 from utilities.parsing_vaildator import dir_path
 
@@ -25,8 +27,8 @@ def create_empty_input_coco_file() -> dict:
             "description": "Auto generated data from pipeline.",
             "contributor": "None",
             "url": "https://github.com/AgniechaP/synthetic_data_generation",
-            "date_created": str(datetime.datetime.now())
-        }
+            "date_created": str(datetime.datetime.now()),
+        },
     }
     return output_coco_file
 
@@ -47,11 +49,7 @@ def add_category_to_coco(coco_file: dict, supercategory: str, name: str) -> int:
         last_category_id = -1
 
     current_category_id = last_category_id + 1
-    category_body = {
-        "supercategory": supercategory,
-        "id": current_category_id,
-        "name": name
-    }
+    category_body = {"supercategory": supercategory, "id": current_category_id, "name": name}
 
     coco_file["categories"].append(category_body)
     return current_category_id
@@ -83,14 +81,16 @@ def add_image_to_coco(coco_file: dict, width: int, height: int, file_name: str) 
         "flickr_url": None,
         "coco_url": None,
         "date_captured": None,
-        "flickr_640_url": None
+        "flickr_640_url": None,
     }
     coco_file["images"].append(image_body)
 
     return current_image_id
 
 
-def add_annotation_to_coco(coco_file: dict, image_id: int, category_id: int, segmentation: list[list], area: float, bbox: list, iscrowd: int = 0) -> int:
+def add_annotation_to_coco(
+    coco_file: dict, image_id: int, category_id: int, segmentation: list[list], area: float, bbox: list, iscrowd: int
+) -> int:
     """
     Add annotation record to "annotations" list in COCO file.
     Args:
@@ -117,7 +117,7 @@ def add_annotation_to_coco(coco_file: dict, image_id: int, category_id: int, seg
         "segmentation": segmentation,
         "area": area,
         "bbox": bbox,
-        "iscrowd": iscrowd
+        "iscrowd": iscrowd,
     }
     coco_file["annotations"].append(annotation_body)
 
@@ -155,7 +155,7 @@ def get_random_background(background_paths: list) -> numpy.ndarray:
     Returns:
         Image in RGB OpenCV format.
     """
-    background_index = random.randint(0, len(background_paths)-1)
+    background_index = random.randint(0, len(background_paths) - 1)
     background_path = background_paths[background_index]
     # background = cv2.cvtColor(cv2.imread(background_path), cv2.COLOR_BGR2RGB)
     background = cv2.imread(background_path)
@@ -183,7 +183,7 @@ def get_random_image_name_for_object_extraction(coco_dict: dict) -> dict:
 
     """
     number_of_available_images = len(coco_dict["images"])
-    image_index = random.randint(0, number_of_available_images-1)
+    image_index = random.randint(0, number_of_available_images - 1)
     return coco_dict["images"][image_index]
 
 
@@ -203,6 +203,7 @@ def get_objects_from_image(coco_dict: dict, image_id: int) -> list:
             segmented_objects.append(annotation)
     return segmented_objects
 
+
 def save_output_coco_to_file(output_directory: dir_path, file_name: str, coco_dictionary: dict):
     """
     Saves input dictionary to JSON in given file.
@@ -216,14 +217,15 @@ def save_output_coco_to_file(output_directory: dir_path, file_name: str, coco_di
         json.dump(coco_dictionary, file, indent=4)
 
 
-def copy_paste_without_blend(background: numpy.ndarray, foreground: numpy.ndarray, mask: numpy.ndarray):
+def copy_paste_without_blend(background: numpy.ndarray, foreground: numpy.ndarray, mask: numpy.ndarray) -> np.ndarray:
     """
-    Paste foreground (rubbish) onto the background based on a mask without blending
+    Paste foreground (rubbish) onto the background based on a mask without blending.
     Args:
-        background: background image
-        foreground: foreground image
-        mask: binary mask
-    Returns: output image
+        background: Background image
+        foreground: Foreground image.
+        mask: Binary mask.
+    Returns:
+        Output image.
     """
     # Ensure that background and foreground have the same shape
     if background.shape != foreground.shape:
