@@ -3,7 +3,6 @@ import os
 import cv2
 import random
 import datetime
-
 import numpy
 
 from utilities.parsing_vaildator import dir_path
@@ -158,7 +157,8 @@ def get_random_background(background_paths: list) -> numpy.ndarray:
     """
     background_index = random.randint(0, len(background_paths)-1)
     background_path = background_paths[background_index]
-    background = cv2.cvtColor(cv2.imread(background_path), cv2.COLOR_BGR2RGB)
+    # background = cv2.cvtColor(cv2.imread(background_path), cv2.COLOR_BGR2RGB)
+    background = cv2.imread(background_path)
 
     return background
 
@@ -213,4 +213,40 @@ def save_output_coco_to_file(output_directory: dir_path, file_name: str, coco_di
     """
     file_path = os.path.join(output_directory, file_name)
     with open(file_path, "w") as file:
-        json.dump(coco_dictionary, file)
+        json.dump(coco_dictionary, file, indent=4)
+
+
+def copy_paste_without_blend(background: numpy.ndarray, foreground: numpy.ndarray, mask: numpy.ndarray):
+    """
+    Paste foreground (rubbish) onto the background based on a mask without blending
+    Args:
+        background: background image
+        foreground: foreground image
+        mask: binary mask
+    Returns: output image
+    """
+    # Ensure that background and foreground have the same shape
+    if background.shape != foreground.shape:
+        foreground = cv2.resize(foreground, (background.shape[1], background.shape[0]))
+
+    # Check if the mask is not None and not empty
+    if (mask is None) or (mask.size == 0):
+        print("Warning: Empty mask. Unable to paste foreground onto background.")
+        return background  # Return the original background if the mask is empty
+
+    # Check if the mask has a valid size
+    if (mask.shape[0] <= 0) or (mask.shape[1] <= 0):
+        print("Warning: Invalid mask size. Unable to paste foreground onto background.")
+        return background
+
+    # Resize mask to match the shape of the background
+    mask_resized = cv2.resize(mask, (background.shape[1], background.shape[0]))
+
+    # Convert mask to binary
+    mask_resized = (mask_resized > 128).astype(numpy.uint8)
+
+    # Copy pixels from foreground (rubbish) to background using the mask
+    output_image = background.copy()
+    output_image[mask_resized != 0] = foreground[mask_resized != 0]
+
+    return output_image
