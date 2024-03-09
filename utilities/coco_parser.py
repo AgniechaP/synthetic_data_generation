@@ -56,10 +56,10 @@ def get_bbox_based_on_mask(mask: np.ndarray):
     [x, y, w, h] coordinates starting from left top corner.
     """
     object_points = np.where(mask > 0)
-    x = min(object_points[0])
-    y = min(object_points[1])
-    w = max(object_points[0]) - x + 1
-    h = max(object_points[1]) - y + 1
+    x = int(min(object_points[0]))
+    y = int(min(object_points[1]))
+    w = int(max(object_points[0]) - x + 1)
+    h = int(max(object_points[1]) - y + 1)
     return [x, y, w, h]
 
 
@@ -85,9 +85,13 @@ def annotation_poly_based_on_mask(mask: np.ndarray) -> Tuple[List, float] | None
     Args:
         mask: Mask of an object (represented by 255) and background (represented by 0).
     Returns:
-    Segmentation section of COCO file in iscrowd: 0 format (polygons) and area.
+        Segmentation section of COCO file in iscrowd: 0 format (polygons) and area.
     """
-    contours, hierarchy = cv2.findContours(mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    try:
+        contours, hierarchy = cv2.findContours(mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    except:
+        print("No contours found")
+        return None
 
     segmentation_parts = []
     for contour in contours:
