@@ -175,7 +175,7 @@ def main(
                 coco_area = rle_annotation[1]
                 coco_iscrowd = 1
 
-            coco_bbox = get_bbox_based_on_mask(mask_from_generated_photo)
+            coco_bbox = get_bbox_based_on_mask(mask_for_rubbish)
 
             # Add annotation to COCO file
             add_annotation_to_coco(

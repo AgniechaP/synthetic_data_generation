@@ -56,10 +56,10 @@ def get_bbox_based_on_mask(mask: np.ndarray):
     [x, y, w, h] coordinates starting from left top corner.
     """
     object_points = np.where(mask > 0)
-    x = int(min(object_points[0]))
-    y = int(min(object_points[1]))
-    w = int(max(object_points[0]) - x + 1)
-    h = int(max(object_points[1]) - y + 1)
+    x = int(np.min(object_points[1]))
+    y = int(np.min(object_points[0]))
+    w = int(np.max(object_points[1]) - x + 1)
+    h = int(np.max(object_points[0]) - y + 1)
     return [x, y, w, h]
 
 
