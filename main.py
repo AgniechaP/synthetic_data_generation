@@ -6,6 +6,7 @@ import sys
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 from utilities.coco_parser import annotation_poly_based_on_mask, annotation_rle_based_on_mask, get_bbox_based_on_mask
 from utilities.image_processing import get_contours, get_mask_from_contours
@@ -29,7 +30,7 @@ def main(
         coco_filepath: file_path,
         image_library_path: dir_path,
         backgrounds_directory_path: dir_path,
-        output_direcotry_path: dir_path,
+        output_directory_path: dir_path,
         photo_prefix: str,
         output_photo_number: int,
 ):
@@ -38,6 +39,7 @@ def main(
     MAX_NUMBER_OF_OBJECTS_ON_OUTPUT_BACKGROUND = 15
     OUTPUT_COCO_FILE_NAME = "annotations_auto_pipeline.json"
     GENERATED_PHOTO_NAME_SUFFIX = ".jpg"
+    GENERATED_PHOTO_MASK_NAME_SUFFIX = "_mask.jpg"
 
     print("--- Auto pipeline synthetic data generator ---")
 
@@ -56,7 +58,7 @@ def main(
         sys.exit()
 
     # Main loop
-    for photo_num in range(output_photo_number):
+    for photo_num in tqdm(range(output_photo_number), desc="Processing photos", colour="white"):
         # Get random background
         background = get_random_background(background_paths)
         background = process_background_image(background)
@@ -150,7 +152,7 @@ def main(
 
             # Generating mask from new image - all rubbish on new background mask
             mask_from_generated_photo[
-            paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width
+                paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width
             ] = copy_paste_without_blend(
                 mask_from_generated_photo[paste_y: paste_y + scaled_height, paste_x: paste_x + scaled_width],
                 rubbish_object_resized,
@@ -189,11 +191,11 @@ def main(
             )
 
         # Save output photo
-        output_photo_path = os.path.join(output_direcotry_path, output_photo_name)
+        output_photo_path = os.path.join(output_directory_path, output_photo_name)
         cv2.imwrite(output_photo_path, output_image)
 
-        # Save the mask with all rubish pasted onto new background
-        output_mask_path = os.path.join(output_direcotry_path, output_photo_name[:-4] + "_mask.jpg")
+        # Save the mask with all rubbish pasted onto new background
+        output_mask_path = os.path.join(output_directory_path, output_photo_name[:-4] + GENERATED_PHOTO_MASK_NAME_SUFFIX)
 
         # Change number of channels to 1
         if mask_from_generated_photo.shape[2] != 1:
@@ -203,7 +205,7 @@ def main(
         cv2.imwrite(output_mask_path, mask_from_generated_photo)
 
     # Save output COCO file
-    save_output_coco_to_file(output_direcotry_path, OUTPUT_COCO_FILE_NAME, output_coco_file)
+    save_output_coco_to_file(output_directory_path, OUTPUT_COCO_FILE_NAME, output_coco_file)
 
     print("--- -------------------- ---")
 
@@ -227,7 +229,7 @@ if __name__ == "__main__":
         coco_filepath=args.coco,
         image_library_path=args.library,
         backgrounds_directory_path=args.input,
-        output_direcotry_path=args.output,
+        output_directory_path=args.output,
         photo_prefix=args.prefix,
         output_photo_number=args.number,
     )
