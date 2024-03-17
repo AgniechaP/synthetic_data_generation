@@ -26,7 +26,11 @@ python3 main.py --coco /path/to/coco/file/annotations.json \
 --number 5
 ```
 ## Blending parameters
-// TODO:
+* Dilatation length = 050/255
+* Gaussian blur kernel (smooth mask) = 075/555
+* Threshold value =  130/255
+* Max value with thresh binary = 255/255
+* Blur length = 150/255
 ## GUI interface version
 For fully manual version of the program with graphical user interface switch to branch [**main**](https://github.com/AgniechaP/synthetic_data_generation/tree/main). 
 #### Agnieszka Piórkowska, Miłosz Gajewski
